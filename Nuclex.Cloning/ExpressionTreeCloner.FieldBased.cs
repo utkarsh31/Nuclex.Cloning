@@ -17,6 +17,9 @@ You should have received a copy of the IBM Common Public
 License along with this library
 */
 #endregion
+
+using System.Linq;
+
 namespace Nuclex.Cloning
 {
     using System;
@@ -187,9 +190,8 @@ namespace Nuclex.Cloning
                     );
 
                 // Give it a new instance of the type being cloned
-                MethodInfo getUninitializedObjectMethodInfo = typeof (FormatterServices).GetMethod(
-                    "GetUninitializedObject", BindingFlags.Static | BindingFlags.Public
-                    );
+                var getUninitializedObjectMethodInfo = typeof (FormatterServices).GetMethod("GetUninitializedObject", BindingFlags.Static | BindingFlags.Public);
+
                 transferExpressions.Add(
                     Expression.Assign(
                         clone,
@@ -203,20 +205,8 @@ namespace Nuclex.Cloning
                     );
 
                 // Enumerate all of the type's fields and generate transfer expressions for each
-                FieldInfo[] fieldInfos = ClonerHelpers.GetFieldInfosIncludingBaseClasses(
-                    clonedType, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
-                    );
-                for (int index = 0; index < fieldInfos.Length; ++index)
-                {
-                    FieldInfo fieldInfo = fieldInfos[index];
-
-                    transferExpressions.Add(
-                        Expression.Assign(
-                            Expression.Field(clone, fieldInfo),
-                            Expression.Field(typedOriginal, fieldInfo)
-                            )
-                        );
-                }
+                var fields = ClonerHelpers.GetFieldInfosIncludingBaseClasses(clonedType, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                transferExpressions.AddRange(fields.Select(fieldInfo => Expression.Assign(Expression.Field(clone, fieldInfo), Expression.Field(typedOriginal, fieldInfo))));
 
                 // Make sure the clone is the last thing in the block to set the return value
                 transferExpressions.Add(clone);
@@ -293,7 +283,8 @@ namespace Nuclex.Cloning
             var labels = new List<LabelTarget>();
 
             // Retrieve the length of each of the array's dimensions
-            MethodInfo arrayGetLengthMethodInfo = typeof (Array).GetMethod("GetLength");
+            var arrayGetLengthMethodInfo = typeof (Array).GetMethod("GetLength");
+            
             for (int index = 0; index < dimensionCount; ++index)
             {
                 // Obtain the length of the array in the current dimension
@@ -498,21 +489,21 @@ namespace Nuclex.Cloning
             )
         {
             // Enumerate all of the type's fields and generate transfer expressions for each
-            FieldInfo[] fieldInfos = ClonerHelpers.GetFieldInfosIncludingBaseClasses(
+            var fieldInfos = ClonerHelpers.GetFieldInfosIncludingBaseClasses(
                 clonedType, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
                 );
-            for (int index = 0; index < fieldInfos.Length; ++index)
+
+            foreach (FieldInfo field in fieldInfos)
             {
-                FieldInfo fieldInfo = fieldInfos[index];
-                Type fieldType = fieldInfo.FieldType;
+                var fieldType = field.FieldType;
 
                 if (fieldType.IsPrimitive || (fieldType == typeof (string)))
                 {
                     // Primitive types and strings can be transferred by simple assignment
                     transferExpressions.Add(
                         Expression.Assign(
-                            Expression.Field(clone, fieldInfo),
-                            Expression.Field(original, fieldInfo)
+                            Expression.Field(clone, field),
+                            Expression.Field(original, field)
                             )
                         );
                 }
@@ -522,8 +513,8 @@ namespace Nuclex.Cloning
                     // assigned without boxing, new instance creation or anything like that.
                     generateFieldBasedComplexTypeTransferExpressions(
                         fieldType,
-                        Expression.Field(original, fieldInfo),
-                        Expression.Field(clone, fieldInfo),
+                        Expression.Field(original, field),
+                        Expression.Field(clone, field),
                         variables,
                         transferExpressions
                         );
@@ -531,7 +522,7 @@ namespace Nuclex.Cloning
                 else
                 {
                     generateFieldBasedReferenceTypeTransferExpressions(
-                        original, clone, transferExpressions, fieldInfo, fieldType
+                        original, clone, transferExpressions, field, fieldType
                         );
                 }
             }

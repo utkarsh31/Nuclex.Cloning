@@ -32,12 +32,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Core" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExpressionTreeCloner.FieldBased.cs" />
     <Compile Include="Helpers\CloneHelpers.cs" />
     <Compile Include="ExpressionTreeCloner.cs" />
     <Compile Include="ExpressionTreeCloner.PropertyBased.cs" />
+    <Compile Include="Helpers\CloneIgnore.cs" />
     <Compile Include="ReflectionCloner.cs" />
     <Compile Include="Interfaces\ICloneFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

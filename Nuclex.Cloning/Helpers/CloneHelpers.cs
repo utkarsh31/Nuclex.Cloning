@@ -1,4 +1,6 @@
-﻿namespace Nuclex.Cloning.Helpers
+﻿using System.Linq;
+
+namespace Nuclex.Cloning.Helpers
 {
     using System;
     using System.Collections.Generic;
@@ -19,46 +21,41 @@
             Type type, BindingFlags bindingFlags
             )
         {
-            FieldInfo[] fieldInfos = type.GetFields(bindingFlags);
+            var fields = type.GetFields(bindingFlags);
 
             // If this class doesn't have a base, don't waste any time
             if (type.BaseType == typeof (object))
             {
-                return fieldInfos;
+                return fields;
             }
+
             // Otherwise, collect all types up to the furthest base class
-            var fieldInfoList = new List<FieldInfo>(fieldInfos);
+            var fieldInfoList = new List<FieldInfo>(fields);
             while (type.BaseType != typeof (object))
             {
                 type = type.BaseType;
-                fieldInfos = type.GetFields(bindingFlags);
+                fields = type.GetFields(bindingFlags);
 
                 // Look for fields we do not have listed yet and merge them into the main list
-                for (int index = 0; index < fieldInfos.Length; ++index)
+                foreach (var field in fields)
                 {
-                    bool found = false;
-
-                    for (int searchIndex = 0; searchIndex < fieldInfoList.Count; ++searchIndex)
-                    {
-                        bool match =
-                            (fieldInfoList[searchIndex].DeclaringType == fieldInfos[index].DeclaringType) &&
-                            (fieldInfoList[searchIndex].Name == fieldInfos[index].Name);
-
-                        if (match)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
+                    var found = fieldInfoList.Any(t => (t.DeclaringType == field.DeclaringType) && (t.Name == field.Name));
 
                     if (!found)
                     {
-                        fieldInfoList.Add(fieldInfos[index]);
+                        fieldInfoList.Add(field);
                     }
                 }
             }
 
-            return fieldInfoList.ToArray();
+            return fieldInfoList.Where(i => !i.HasAttribute<CloneIgnore>()).ToArray();
+        }
+
+        private static bool HasAttribute<TAttribute>(this FieldInfo type) where TAttribute : Attribute
+        {
+            var att = type.GetCustomAttributes(typeof (TAttribute), true).FirstOrDefault() as TAttribute;
+
+            return att != null;
         }
     }
 }

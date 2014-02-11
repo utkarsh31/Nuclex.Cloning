@@ -73,7 +73,7 @@ namespace Nuclex.Cloning
                 return default(TCloned);
             }
 
-            Func<object, object> cloner = getOrCreateDeepPropertyBasedCloner(typeof (TCloned));
+            var cloner = getOrCreateDeepPropertyBasedCloner(typeof (TCloned));
             return (TCloned) cloner(objectToCloneAsObject);
         }
 
