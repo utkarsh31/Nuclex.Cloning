@@ -21,12 +21,12 @@ namespace Nuclex.Cloning.Helpers
             Type type, BindingFlags bindingFlags
             )
         {
-            var fields = type.GetFields(bindingFlags);
+            var fields = type.GetWriteableFields(bindingFlags);
 
             // If this class doesn't have a base, don't waste any time
             if (type.BaseType == typeof (object))
             {
-                return fields;
+                return fields.ToArray();
             }
 
             // Otherwise, collect all types up to the furthest base class
@@ -34,7 +34,7 @@ namespace Nuclex.Cloning.Helpers
             while (type.BaseType != typeof (object))
             {
                 type = type.BaseType;
-                fields = type.GetFields(bindingFlags);
+                fields = type.GetWriteableFields(bindingFlags);
 
                 // Look for fields we do not have listed yet and merge them into the main list
                 foreach (var field in fields)
@@ -48,7 +48,12 @@ namespace Nuclex.Cloning.Helpers
                 }
             }
 
-            return fieldInfoList.Where(i => !i.HasAttribute<CloneIgnore>()).ToArray();
+            return fieldInfoList.ToArray();
+        }
+
+        private static FieldInfo[] GetWriteableFields(this Type type, BindingFlags bindingFlags)
+        {
+            return type.GetFields(bindingFlags).Where(i => !i.IsInitOnly && !i.HasAttribute<CloneIgnore>()).ToArray();
         }
 
         private static bool HasAttribute<TAttribute>(this FieldInfo type) where TAttribute : Attribute
