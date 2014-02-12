@@ -19,6 +19,8 @@ License along with this library
 #endregion
 
 using System.Linq;
+using Nuclex.Cloning.Attributes;
+using Nuclex.Cloning.Helpers;
 
 namespace Nuclex.Cloning
 {
@@ -27,7 +29,6 @@ namespace Nuclex.Cloning
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Runtime.Serialization;
-    using Helpers;
     using Interfaces;
 
     public partial class ExpressionTreeCloner : ICloneFactory
@@ -49,12 +50,12 @@ namespace Nuclex.Cloning
         /// </remarks>
         private static Func<object, object> createDeepFieldBasedCloner(Type clonedType)
         {
-            ParameterExpression original = Expression.Parameter(typeof (object), "original");
+            ParameterExpression original = Expression.Parameter(typeof(object), "original");
 
             var transferExpressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            if (clonedType.IsPrimitive || (clonedType == typeof (string)))
+            if (clonedType.IsPrimitive || (clonedType == typeof(string)))
             {
                 // Primitives and strings are copied on direct assignment
                 transferExpressions.Add(original);
@@ -64,13 +65,13 @@ namespace Nuclex.Cloning
                 // Arrays need to be cloned element-by-element
                 Type elementType = clonedType.GetElementType();
 
-                if (elementType.IsPrimitive || (elementType == typeof (string)))
+                if (elementType.IsPrimitive || (elementType == typeof(string)))
                 {
                     // For primitive arrays, the Array.Clone() method is sufficient
                     transferExpressions.Add(
                         generateFieldBasedPrimitiveArrayTransferExpressions(
                             clonedType, original, variables, transferExpressions
-                            )
+                        )
                         );
                 }
                 else
@@ -99,7 +100,7 @@ namespace Nuclex.Cloning
                 variables.Add(clone);
 
                 // Give it a new instance of the type being cloned
-                MethodInfo getUninitializedObjectMethodInfo = typeof (FormatterServices).GetMethod(
+                MethodInfo getUninitializedObjectMethodInfo = typeof(FormatterServices).GetMethod(
                     "GetUninitializedObject", BindingFlags.Static | BindingFlags.Public
                     );
                 transferExpressions.Add(
@@ -145,7 +146,7 @@ namespace Nuclex.Cloning
             // Value types require manual boxing
             if (clonedType.IsValueType)
             {
-                resultExpression = Expression.Convert(resultExpression, typeof (object));
+                resultExpression = Expression.Convert(resultExpression, typeof(object));
             }
 
             return Expression.Lambda<Func<object, object>>(resultExpression, original).Compile();
@@ -156,12 +157,12 @@ namespace Nuclex.Cloning
         /// <returns>A method that clones an object of the provided type</returns>
         private static Func<object, object> createShallowFieldBasedCloner(Type clonedType)
         {
-            ParameterExpression original = Expression.Parameter(typeof (object), "original");
+            ParameterExpression original = Expression.Parameter(typeof(object), "original");
 
             var transferExpressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            if (clonedType.IsPrimitive || clonedType.IsValueType || (clonedType == typeof (string)))
+            if (clonedType.IsPrimitive || clonedType.IsValueType || (clonedType == typeof(string)))
             {
                 // Primitives and strings are copied on direct assignment
                 transferExpressions.Add(original);
@@ -190,7 +191,7 @@ namespace Nuclex.Cloning
                     );
 
                 // Give it a new instance of the type being cloned
-                var getUninitializedObjectMethodInfo = typeof (FormatterServices).GetMethod("GetUninitializedObject", BindingFlags.Static | BindingFlags.Public);
+                var getUninitializedObjectMethodInfo = typeof(FormatterServices).GetMethod("GetUninitializedObject", BindingFlags.Static | BindingFlags.Public);
 
                 transferExpressions.Add(
                     Expression.Assign(
@@ -226,7 +227,7 @@ namespace Nuclex.Cloning
             // Value types require manual boxing
             if (clonedType.IsValueType)
             {
-                resultExpression = Expression.Convert(resultExpression, typeof (object));
+                resultExpression = Expression.Convert(resultExpression, typeof(object));
             }
 
             return Expression.Lambda<Func<object, object>>(resultExpression, original).Compile();
@@ -247,10 +248,10 @@ namespace Nuclex.Cloning
             ICollection<Expression> transferExpressions
             )
         {
-            MethodInfo arrayCloneMethodInfo = typeof (Array).GetMethod("Clone");
+            MethodInfo arrayCloneMethodInfo = typeof(Array).GetMethod("Clone");
             return Expression.Convert(
                 Expression.Call(
-                    Expression.Convert(original, typeof (Array)), arrayCloneMethodInfo
+                    Expression.Convert(original, typeof(Array)), arrayCloneMethodInfo
                     ),
                 clonedType
                 );
@@ -283,12 +284,12 @@ namespace Nuclex.Cloning
             var labels = new List<LabelTarget>();
 
             // Retrieve the length of each of the array's dimensions
-            var arrayGetLengthMethodInfo = typeof (Array).GetMethod("GetLength");
-            
+            var arrayGetLengthMethodInfo = typeof(Array).GetMethod("GetLength");
+
             for (int index = 0; index < dimensionCount; ++index)
             {
                 // Obtain the length of the array in the current dimension
-                lengths.Add(Expression.Variable(typeof (int)));
+                lengths.Add(Expression.Variable(typeof(int)));
                 variables.Add(lengths[index]);
                 transferExpressions.Add(
                     Expression.Assign(
@@ -300,7 +301,7 @@ namespace Nuclex.Cloning
                     );
 
                 // Set up a variable to index the array in this dimension
-                indexes.Add(Expression.Variable(typeof (int)));
+                indexes.Add(Expression.Variable(typeof(int)));
                 variables.Add(indexes[index]);
 
                 // Also set up a label than can be used to break out of the dimension's
@@ -339,7 +340,7 @@ namespace Nuclex.Cloning
                 {
                     // The innermost loop clones an actual array element
 
-                    if (elementType.IsPrimitive || (elementType == typeof (string)))
+                    if (elementType.IsPrimitive || (elementType == typeof(string)))
                     {
                         // Primitive array elements can be copied by simple assignment. This case
                         // should not occur since Array.Clone() should be used instead.
@@ -384,7 +385,7 @@ namespace Nuclex.Cloning
                             Expression clonedElement;
 
                             Type nestedElementType = elementType.GetElementType();
-                            if (nestedElementType.IsPrimitive || (nestedElementType == typeof (string)))
+                            if (nestedElementType.IsPrimitive || (nestedElementType == typeof(string)))
                             {
                                 clonedElement = generateFieldBasedPrimitiveArrayTransferExpressions(
                                     elementType, originalElement, nestedVariables, nestedTransferExpressions
@@ -405,12 +406,12 @@ namespace Nuclex.Cloning
                             // Complex types are cloned by checking their actual, concrete type (fields
                             // may be typed to an interface or base class) and requesting a cloner for that
                             // type during runtime
-                            MethodInfo getOrCreateClonerMethodInfo = typeof (ExpressionTreeCloner).GetMethod(
+                            MethodInfo getOrCreateClonerMethodInfo = typeof(ExpressionTreeCloner).GetMethod(
                                 "getOrCreateDeepFieldBasedCloner",
                                 BindingFlags.NonPublic | BindingFlags.Static
                                 );
-                            MethodInfo getTypeMethodInfo = typeof (object).GetMethod("GetType");
-                            MethodInfo invokeMethodInfo = typeof (Func<object, object>).GetMethod("Invoke");
+                            MethodInfo getTypeMethodInfo = typeof(object).GetMethod("GetType");
+                            MethodInfo invokeMethodInfo = typeof(Func<object, object>).GetMethod("Invoke");
 
                             // Generate expressions to do this:
                             //   clone.SomeField = getOrCreateDeepFieldBasedCloner(
@@ -488,6 +489,9 @@ namespace Nuclex.Cloning
             ICollection<Expression> transferExpressions
             )
         {
+
+
+
             // Enumerate all of the type's fields and generate transfer expressions for each
             var fieldInfos = ClonerHelpers.GetFieldInfosIncludingBaseClasses(
                 clonedType, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
@@ -497,15 +501,23 @@ namespace Nuclex.Cloning
             {
                 var fieldType = field.FieldType;
 
-                if (fieldType.IsPrimitive || (fieldType == typeof (string)))
+                if (fieldType.IsPrimitive || (fieldType == typeof(string)))
                 {
                     // Primitive types and strings can be transferred by simple assignment
                     transferExpressions.Add(
-                        Expression.Assign(
-                            Expression.Field(clone, field),
-                            Expression.Field(original, field)
-                            )
+                            Expression.Assign(
+                                Expression.Field(clone, field),
+                                Expression.Field(original, field)
+                                )
                         );
+                }
+                else if (field.HasAttribute<UseCloningMethod>())
+                {
+                    var copyICloneable = Expression.Assign(Expression.Field(clone, field),
+                                                           Expression.Convert(
+                                                               Expression.Call(Expression.Field(original, field),
+                                                                               field.GetAttributePropertyValue<UseCloningMethod, string>("MethodName"), null, null), fieldType));
+                    transferExpressions.Add(copyICloneable);
                 }
                 else if (fieldType.IsValueType)
                 {
@@ -557,7 +569,7 @@ namespace Nuclex.Cloning
                 Expression fieldClone;
 
                 Type elementType = fieldType.GetElementType();
-                if (elementType.IsPrimitive || (elementType == typeof (string)))
+                if (elementType.IsPrimitive || (elementType == typeof(string)))
                 {
                     // For primitive arrays, the Array.Clone() method is sufficient
                     fieldClone = generateFieldBasedPrimitiveArrayTransferExpressions(
@@ -590,12 +602,12 @@ namespace Nuclex.Cloning
                 // Complex types are cloned by checking their actual, concrete type (fields
                 // may be typed to an interface or base class) and requesting a cloner for that
                 // type during runtime
-                MethodInfo getOrCreateClonerMethodInfo = typeof (ExpressionTreeCloner).GetMethod(
+                MethodInfo getOrCreateClonerMethodInfo = typeof(ExpressionTreeCloner).GetMethod(
                     "getOrCreateDeepFieldBasedCloner",
                     BindingFlags.NonPublic | BindingFlags.Static
                     );
-                MethodInfo getTypeMethodInfo = typeof (object).GetMethod("GetType");
-                MethodInfo invokeMethodInfo = typeof (Func<object, object>).GetMethod("Invoke");
+                MethodInfo getTypeMethodInfo = typeof(object).GetMethod("GetType");
+                MethodInfo invokeMethodInfo = typeof(Func<object, object>).GetMethod("Invoke");
 
                 // Generate expressions to do this:
                 //   clone.SomeField = getOrCreateDeepFieldBasedCloner(
@@ -624,13 +636,15 @@ namespace Nuclex.Cloning
             // Wrap up the generated array or complex reference type transfer expressions
             // in a null check so the field is skipped if it is not holding an instance.
             transferExpressions.Add(
+
                 Expression.IfThen(
-                    Expression.NotEqual(
+                Expression.NotEqual(
                         Expression.Field(original, fieldInfo), Expression.Constant(null)
                         ),
                     Expression.Block(fieldVariables, fieldTransferExpressions)
                     )
                 );
         }
+
     }
 }

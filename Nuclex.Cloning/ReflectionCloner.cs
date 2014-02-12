@@ -17,12 +17,14 @@ You should have received a copy of the IBM Common Public
 License along with this library
 */
 #endregion
+
+using Nuclex.Cloning.Helpers;
+
 namespace Nuclex.Cloning
 {
     using System;
     using System.Reflection;
     using System.Runtime.Serialization;
-    using Helpers;
     using Interfaces;
 
     /// <summary>Clones objects using reflection</summary>

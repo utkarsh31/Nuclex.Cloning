@@ -1,11 +1,11 @@
 ﻿using System.Linq;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using Nuclex.Cloning.Attributes;
 
 namespace Nuclex.Cloning.Helpers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-
     /// <summary>Contains helper methods for the cloners</summary>
     internal static class ClonerHelpers
     {
@@ -56,11 +56,28 @@ namespace Nuclex.Cloning.Helpers
             return type.GetFields(bindingFlags).Where(i => !i.IsInitOnly && !i.HasAttribute<CloneIgnore>()).ToArray();
         }
 
-        private static bool HasAttribute<TAttribute>(this FieldInfo type) where TAttribute : Attribute
+        public static bool HasAttribute<TAttribute>(this FieldInfo type) where TAttribute : Attribute
         {
             var att = type.GetCustomAttributes(typeof (TAttribute), true).FirstOrDefault() as TAttribute;
 
             return att != null;
+        }
+
+        public static TValue GetAttributePropertyValue<TAttribute, TValue>(this FieldInfo type, string propertyName) where TAttribute : Attribute
+        {
+            var att = type.GetCustomAttributes(typeof(TAttribute), true).FirstOrDefault() as TAttribute;
+
+            if (att != null)
+            {
+                var sourceType = att.GetType();
+                var value = sourceType.GetProperty(propertyName).GetValue(att, null);
+                if (value != null)
+                {
+                    return (TValue) value;
+                }
+            }
+
+            return default(TValue);
         }
     }
 }
